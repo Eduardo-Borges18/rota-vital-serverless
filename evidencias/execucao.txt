@@ -1,0 +1,76 @@
+ROTA VITAL | ATIVIDADE INDIVIDUAL DE SERVERLESS
+
+Java 25 em execução · compilação para Java 21
+Invocador local oficial do Google Cloud Functions Framework
+CloudEvent · POST /guias · Reaproveitamento da JVM · Timeout
+> mvn -q test-compile exec:java
+
+01 | INVOCAÇÃO POR CLOUD EVENT
+
+> java -jar target/local/invoker.jar --classpath "target/classes;target/local/gson.jar" --target br.edu.cesar.rotavital.GuiaEvento --port 8081
+Inicialização da JVM e do framework: 429.0 ms
+
+CloudEvent 1
+> curl.exe -sS -H "Content-Type: application/cloudevents+json" --data-binary @events/pedido.json http://127.0.0.1:8081/
+HTTP 200 | 0.227329 s
+Log da função: {"guia":"G-R-001","hospital":"H-Recife","bolsas":["O-NEG-0142"],"invocacaoNesteAmbiente":1,"evento":"pedido-demo-001"}
+
+CloudEvent 2
+> curl.exe -sS -H "Content-Type: application/cloudevents+json" --data-binary @events/pedido.json http://127.0.0.1:8081/
+HTTP 200 | 0.003017 s
+Log da função: {"guia":"G-R-001","hospital":"H-Recife","bolsas":["O-NEG-0142"],"invocacaoNesteAmbiente":2,"evento":"pedido-demo-001"}
+
+02 | POST /guias · UM PROCESSO NOVO POR CHAMADA
+
+> java -jar target/local/invoker.jar --classpath "target/classes;target/local/gson.jar" --target br.edu.cesar.rotavital.GuiaHttp --port 8080
+
+POST 1 · JVM nova
+> curl.exe -sS -H "Content-Type: application/json" --data-binary @events/pedido-http.json http://127.0.0.1:8080/guias
+{"guia":"G-R-002","hospital":"H-Caruaru","bolsas":[],"invocacaoNesteAmbiente":1}
+HTTP 201 | 0.150485 s
+
+POST 2 · JVM nova
+> curl.exe -sS -H "Content-Type: application/json" --data-binary @events/pedido-http.json http://127.0.0.1:8080/guias
+{"guia":"G-R-002","hospital":"H-Caruaru","bolsas":[],"invocacaoNesteAmbiente":1}
+HTTP 201 | 0.142196 s
+
+POST 3 · JVM nova
+> curl.exe -sS -H "Content-Type: application/json" --data-binary @events/pedido-http.json http://127.0.0.1:8080/guias
+{"guia":"G-R-002","hospital":"H-Caruaru","bolsas":[],"invocacaoNesteAmbiente":1}
+HTTP 201 | 0.135972 s
+
+03 | POST /guias · TRÊS CHAMADAS NA MESMA JVM
+
+> java -jar target/local/invoker.jar --classpath "target/classes;target/local/gson.jar" --target br.edu.cesar.rotavital.GuiaHttp --port 8080
+
+POST 1 · mesma JVM
+> curl.exe -sS -H "Content-Type: application/json" --data-binary @events/pedido-http.json http://127.0.0.1:8080/guias
+{"guia":"G-R-002","hospital":"H-Caruaru","bolsas":[],"invocacaoNesteAmbiente":1}
+HTTP 201 | 0.137646 s
+
+POST 2 · mesma JVM
+> curl.exe -sS -H "Content-Type: application/json" --data-binary @events/pedido-http.json http://127.0.0.1:8080/guias
+{"guia":"G-R-002","hospital":"H-Caruaru","bolsas":[],"invocacaoNesteAmbiente":2}
+HTTP 201 | 0.002234 s
+
+POST 3 · mesma JVM
+> curl.exe -sS -H "Content-Type: application/json" --data-binary @events/pedido-http.json http://127.0.0.1:8080/guias
+{"guia":"G-R-002","hospital":"H-Caruaru","bolsas":[],"invocacaoNesteAmbiente":3}
+HTTP 201 | 0.002320 s
+
+04 | TEMPO LIMITE · ESPERA DE 5 SEGUNDOS
+
+LIMITE_SEGUNDOS=3
+> java -jar target/local/invoker.jar --classpath "target/classes;target/local/gson.jar" --target br.edu.cesar.rotavital.GuiaHttp --port 8080
+> curl.exe -sS -H "Content-Type: application/json" --data-binary @events/pedido-lento.json http://127.0.0.1:8080/guias
+{"erro":"Tempo limite de execução excedido","limiteSegundos":3}
+HTTP 504 | 3.127878 s
+FaaS timeout: geração interrompida pelo limite local de 3 s
+
+Mesmo pedido, após reiniciar com LIMITE_SEGUNDOS=10
+> java -jar target/local/invoker.jar --classpath "target/classes;target/local/gson.jar" --target br.edu.cesar.rotavital.GuiaHttp --port 8080
+> curl.exe -sS -H "Content-Type: application/json" --data-binary @events/pedido-lento.json http://127.0.0.1:8080/guias
+{"guia":"G-R-003","hospital":null,"bolsas":[],"invocacaoNesteAmbiente":1}
+HTTP 201 | 5.135053 s
+
+Demonstração concluída.

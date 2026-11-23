@@ -1,0 +1,12 @@
+{
+  "specversion": "1.0",
+  "id": "pedido-demo-001",
+  "source": "/rota-vital/requisicoes",
+  "type": "br.rotavital.requisicao.aprovada",
+  "datacontenttype": "application/json",
+  "data": {
+    "requisicaoId": "R-001",
+    "hospital": "H-Recife",
+    "bolsas": ["O-NEG-0142"]
+  }
+}
